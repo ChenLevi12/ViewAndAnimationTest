@@ -13,17 +13,17 @@ import CoreData
 @objc(Character)
 public class Character: NSManagedObject {
     
-    convenience init(characterOBJ: CharacterOBJ){
+    convenience init(name: String?, nickName: String?, image: String?, dateOfBirth: Int16, powers: [String]?, actorName: String?, movies: [[String:Any]]){
         let context = DBManager.shared.context
         let desc = NSEntityDescription.entity(forEntityName: "Character", in: context)!
         self.init(entity: desc, insertInto: context)
-        self.name = characterOBJ.name
-        self.nickname = characterOBJ.nickname
-        self.image = characterOBJ.image
-        self.dateOfBirth = characterOBJ.dateOfBirth!
-        self.powers = characterOBJ.powers
-        self.actorName = characterOBJ.actorName
-        self.movies = characterOBJ.movies!
+        self.name = name
+        self.nickname = nickName
+        self.image = image
+        self.dateOfBirth = dateOfBirth
+        self.powers = powers
+        self.actorName = actorName
+        self.movies = movies
         
         DBManager.shared.saveContext()
     }

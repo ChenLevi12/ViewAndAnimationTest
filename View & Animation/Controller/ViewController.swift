@@ -8,7 +8,7 @@
 
 import UIKit
 
-class ViewController: UIViewController, ValueCompleted {
+class ViewController: UIViewController {
     
     @IBOutlet weak var tableView: UITableView!
     @IBOutlet weak var nickname: UILabel!
@@ -17,44 +17,46 @@ class ViewController: UIViewController, ValueCompleted {
     @IBOutlet weak var originalActor: UILabel!
     @IBOutlet weak var imageA: UIImageView!
     var moviesData: [[String:Any]] = []
-    var character: CharacterOBJ!
-    static var ins: ViewController?
-
+    var character: Character!
+    var requestCharacterCall:CharacterRequest!
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        ViewController.ins = self
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(finished(notification:)), name: .finished, object: nil)
+        
         tableView.dataSource = self
         tableView.delegate = self
     
         let characterFromData = try! DBManager.shared.getCharacters()
+        
+        //check if data exist in CoreData
         if characterFromData.count != 0{
-            
             print("go to DataCore")
-            let characterOBJFromData = CharacterOBJ(name: characterFromData[0].name, nickname: characterFromData[0].nickname, image: characterFromData[0].image, dateOfBirth: characterFromData[0].dateOfBirth, powers: characterFromData[0].powers, actorName: characterFromData[0].actorName, movies: characterFromData[0].movies)
-            character = characterOBJFromData
+            //if fes pull the data from CoreData
+            character = characterFromData[0]
+            setViewsValue()
         }else{
             print("call to api")
-            let characterOBJ = CharacterOBJ()
-            character = characterOBJ
-            
-            
-            
+            //else make api call in another class
+            requestCharacterCall = CharacterRequest()
         }
         
     }
     
-    
-    static func finished(){
-        ViewController.ins?.completedLoading()
+    @objc func finished(notification: NSNotification){
+        //set the object after api call ended
+        character = requestCharacterCall.instance
+        setViewsValue()
     }
     
-    func completedLoading() {
-        let savedCharacter = Character(characterOBJ: character)
+    
+    func setViewsValue() {
+        //set the values in all views
         self.navigationItem.title = character.name
         nickname.text = character.nickname
-        yearBorn.text = "\(character.dateOfBirth!)"
+        yearBorn.text = "\(character.dateOfBirth)"
         originalActor.text = character.actorName
         var str = ""
         guard let powersStr = character.powers else{return}
@@ -68,6 +70,7 @@ class ViewController: UIViewController, ValueCompleted {
         powers.text = str
         
         guard let imgURL = URL(string: character.image!) else{return}
+        //show image from url
         URLSession.shared.dataTask(with: imgURL) { (data, response, error) in
             guard let data = data else{return}
             DispatchQueue.main.async {
@@ -76,22 +79,24 @@ class ViewController: UIViewController, ValueCompleted {
                 
             }
             }.resume()
-        
+        //make circle image
         imageA.layer.cornerRadius = imageA.bounds.width / 2
         imageA.layer.masksToBounds = true
         
-        moviesData = character.movies!
+        moviesData = character.movies
         tableView.reloadData()
     }
     
     
     
     @IBAction func imageTapped(_ sender: Any) {
+        //go to full screen image
         performSegue(withIdentifier: "photo", sender: nil)
         
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        //pass image to next viewcontroller
         if let dest = segue.destination as? PhotoViewController{
             dest.img = imageA.image
         }
@@ -100,7 +105,6 @@ class ViewController: UIViewController, ValueCompleted {
 
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
     }
 
 
@@ -130,6 +134,14 @@ extension ViewController: UITableViewDelegate, UITableViewDataSource{
             cell.alpha = 1.0
         })
     }
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        return 65.0
+    }
     
+}
+
+
+extension Notification.Name{
+    static let finished = Notification.Name("finished")
 }
 
